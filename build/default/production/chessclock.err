@@ -1,0 +1,6 @@
+Message[302] /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm 77 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[302] /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm 78 : Register in operand not in bank 0.  Ensure that bank bits are correct.
+Message[305] /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm 458 : Using default destination of 1 (file).
+Message[305] /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm 493 : Using default destination of 1 (file).
+Message[305] /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm 625 : Using default destination of 1 (file).
+Message[305] /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm 651 : Using default destination of 1 (file).

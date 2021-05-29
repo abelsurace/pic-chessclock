@@ -1,0 +1,1524 @@
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE  1
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00001 ;**************************************************************************************
+                      00002 ;                             CLOCK TIMER
+                      00003 ;Este programa permite el conteo con minutero y segundero de dos relojes con 4 displays 
+                      00004 ;de 7 segmentos cada uno, utilizando el PIC16F84A. Un conversor de BCD a siete segmentos 
+                      00005 ;(74LS47), es conectado a las salidas RB0, RB1, RB2 y RB3, (A,B,C,D) respectivamente, 
+                      00006 ;mientras que la seleccion de display multiplexada se hace mediante las lineas RB4, RB5 RB6 
+                      00007 ;conectadas a A,B,C de un decodificador de 3 a 8 respectivamente, (74LS138).
+                      00008 ;Los displays son actualizados cada 5ms para una rata de multiplexacion de 20 ms, el TMRO
+                      00009 ;es utilizado como generador de las interrupciones cada 5ms.
+                      00010 ;
+                      00011 ;                                               Abel Surace y Hugo Hernández 16/01/2000
+                      00012 ;                                               MPLAB for Windows 4.12.12
+                      00013 ;                                               Refactored Abel Surace 05/13/2021
+                      00014 ;                                               MPLAB for Linux 5.35
+                      00015 ;                                               
+                      00016 ;
+                      00017 ;Esta versión maneja temporales de reloj.  Tiene conteo descendente.
+                      00018 ;***************************************************************************************
+                      00019 #include "p16f84.inc"
+                      00001         LIST
+                      00002 
+                      00003 ;==========================================================================
+                      00004 ; Build date : Jan 06 2020
+                      00005 ;  MPASM PIC16F84 processor include
+                      00006 ; 
+                      00007 ;  (c) Copyright 1999-2020 Microchip Technology, All rights reserved
+                      00008 ;==========================================================================
+                      00009 
+                      00207         LIST
+                      00020 
+                      00021 ; CONFIG
+                      00022 ; __config 0x3FF9
+2007   3FF9           00023  __CONFIG _FOSC_XT & _WDTE_OFF & _PWRTE_OFF & _CP_OFF
+                      00024  
+                      00025 ;
+  0000000C            00026 TempC   equ     0x0c
+  0000000D            00027 TempD   equ     0x0d
+  0000000E            00028 TecStatus       equ     0x0e
+  0000000F            00029 TecTemp equ     0x0f
+  00000010            00030 Count1  equ     0x10
+  00000011            00031 Count2  equ     0x11
+  00000012            00032 CountP  equ     0x12
+  00000013            00033 HraTime1        equ     0x13
+  00000014            00034 MinTime1        equ     0x14
+  00000015            00035 SegTime1        equ     0x15
+  00000016            00036 HraTime2        equ     0x16
+  00000017            00037 MinTime2        equ     0x17
+  00000018            00038 SegTime2        equ     0x18
+  00000019            00039 HraTemp equ     0x19
+  0000001A            00040 MinTemp equ     0x1a
+  0000001B            00041 SegTemp equ     0x1b
+  0000001C            00042 FPausa  equ     0x1c
+  0000001D            00043 FJ1     equ     0x1d
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE  2
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+  0000001E            00044 FJ2     equ     0x1e
+  0000001F            00045 FMas    equ     0x1f
+  00000020            00046 FMenos  equ     0x20
+  00000021            00047 Puntos1 equ     0x21
+  00000022            00048 Puntos2 equ     0x22
+  00000023            00049 Countagain equ  0x23
+  00000024            00050 Countagain1 equ 0x24    
+  00000000            00051 Pausa   equ     H'0000'
+  00000001            00052 J1      equ     H'0001'
+  00000002            00053 J2      equ     H'0002'
+  00000003            00054 Mas     equ     H'0003'
+  00000004            00055 Menos   equ     H'0004'
+  00000005            00056 HraMin  equ     H'0005'
+  00000001            00057 OptionReg equ   1
+  00000002            00058 PCL     equ     2
+  00000026            00059 BcdMsd  equ     26
+  00000027            00060 Bcd     equ     27
+                      00061 ;
+                      00062         org     0
+0000   2???           00063         goto    start
+                      00064 ;
+                      00065         org     4
+0004   2???           00066         goto    ServiceInterrupts
+                      00067 ;
+0005                  00068 start
+0005   2???           00069         call    InitPorts
+0006   2???           00070         call    InitTimers
+0007                  00071 loop
+0007   2???           00072         goto    loop
+                      00073 ;
+0008                  00074 InitPorts
+0008   1683           00075         bsf     STATUS,RP0      ;Selecciona el banco 1
+0009   301F           00076         movlw   H'1f'           ;carga w con 1f
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+000A   0085           00077         movwf   TRISA           ;pone el puerto A como entrada
+Message[302]: Register in operand not in bank 0.  Ensure that bank bits are correct.
+000B   0186           00078         clrf    TRISB           ;pone el puerto B como salida
+000C   1283           00079         bcf     STATUS,RP0      ;Selecciona el banco 0
+000D   0185           00080         clrf    PORTA           ;Borra las entradas en puerto A
+000E   0186           00081         clrf    PORTB           ;Borra las salidas en puerto B
+000F   0008           00082         return
+                      00083 ;
+                      00084 ;La velocidad del reloj es de 4MHZ, dividido por una preescala de 32 determina que TMRO
+                      00085 ;se incrementara cada 31.25us. Si tmro es precargado con 96 tomara (256-176)*31.25us para
+                      00086 ;entrar en sobreflujo i.e 5ms. Asi que se obtiene una interrupcion cada 5ms.
+                      00087 ;
+0010                  00088 InitTimers
+0010   0193           00089         clrf    HraTime1                ;Borra timers
+0011   0194           00090         clrf    MinTime1                ;       /
+0012   0195           00091         clrf    SegTime1                ;       /
+0013   0196           00092         clrf    HraTime2                ;       /
+0014   0197           00093         clrf    MinTime2                ;       /
+0015   0198           00094         clrf    SegTime2                ;       /
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE  3
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0016   0199           00095         clrf    HraTemp                 ;       /
+0017   019A           00096         clrf    MinTemp                 ;       /
+0018   019B           00097         clrf    SegTemp                 ;       /
+0019   0190           00098         clrf    Count1          ;Pone contador primer clock en 00
+001A   0191           00099         clrf    Count2          ;Pone contador segundo clock en 00
+001B   0192           00100         clrf    CountP          ;Pone en 0
+001C   3002           00101         movlw   0x02
+001D   00A1           00102         movwf   Puntos1
+001E   00A2           00103         movwf   Puntos2
+001F   3008           00104         movlw   0x08
+0020   008E           00105         movwf   TecStatus       ;Pone a 08 las teclas (Ascendente)
+0021   019C           00106         clrf    FPausa          ;Pone a 0 los Bits de FPausa
+0022   019D           00107         clrf    FJ1             ;Pone a 0 los Bits de FJ1
+0023   019E           00108         clrf    FJ2             ;Pone a 0 los Bits de FJ2
+0024   019F           00109         clrf    FMas            ;Pone a 0 los Bits de FMas
+0025   01A0           00110         clrf    FMenos          ;Pone a 0 los Bits de FMenos
+0026   018C           00111         clrf    TempC           ;Borra el contador de digitos
+0027   1683           00112         bsf     STATUS,RP0      ;Selecciona banco 1
+0028   3084           00113         movlw   B'10000100'     ;asigna ps a TMR0
+0029   0081           00114         movwf   OptionReg       ;ps = 32
+002A   1283           00115         bcf     STATUS,RP0      ;Selecciona banco 0
+002B   3020           00116         movlw   B'00100000'     ;Activa interrupcion TMR0
+002C   008B           00117         movwf   INTCON          ;
+002D   30B0           00118         movlw   .176            ;Establece TMR0 en 128
+002E   0081           00119         movwf   TMR0            ;
+002F   0009           00120         retfie
+                      00121 ;
+0030                  00122 ServiceInterrupts
+0030   190B           00123         btfsc   INTCON,T0IF     ;Interrupcion TMR0 ?
+0031   2???           00124         goto    ServiceTMR0     ;Si entonces atienda interrupcion
+0032   3020           00125         movlw   B'00100000'     ;No entonces activa para siguiente interrupcion
+0033   008B           00126         movwf   INTCON          ;
+0034   0009           00127         retfie                  ;Retorno de falsa Interrupcion
+                      00128 ;
+0035                  00129 ServiceTMR0
+0035   30B0           00130         movlw   .176            ;inicia TMR0 en 128
+0036   0081           00131         movwf   TMR0            ;
+0037   110B           00132         bcf     INTCON,T0IF     ;Borra bandera de interrupcion, alista la siguiente
+0038   2???           00133         call    DelayTec        ;llama rutina de Retardo de Rebote
+                      00134 ;
+0039   080E           00135         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+003A   391F           00136         andlw   0x1f            ;Extrae los 5 primeros bits
+003B   3A0A           00137         xorlw   0x0a            ;Le toca a J1?
+003C   1903           00138         btfsc   STATUS,Z        ;No entonces salta
+003D   2???           00139         call    IncTimer1       ;llama rutina de incremento a timer2
+                      00140 ;
+003E   080E           00141         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+003F   391F           00142         andlw   0x1f            ;Extrae los 5 primeros bits
+0040   3A12           00143         xorlw   0x12            ;Le toca a J1?
+0041   1903           00144         btfsc   STATUS,Z        ;No entonces salta
+0042   2???           00145         call    DecTimer1       ;llama rutina de decremento a timer2
+                      00146 ;
+0043   080E           00147         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE  4
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0044   391F           00148         andlw   0x1f            ;Extrae los 5 primeos bits
+0045   3A0C           00149         xorlw   0x0c            ;Le toca a J2?
+0046   1903           00150         btfsc   STATUS,Z        ;No entonces salta
+0047   2???           00151         call    IncTimer2       ;llama rutina de incremento a timer1
+                      00152 ;
+0048   080E           00153         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+0049   391F           00154         andlw   0x1f            ;Extrae los 5 primeos bits
+004A   3A14           00155         xorlw   0x14            ;Le toca a J2?
+004B   1903           00156         btfsc   STATUS,Z        ;No entonces salta
+004C   2???           00157         call    DecTimer2       ;llama rutina de decremento a timer1
+                      00158 ;
+004D   080E           00159         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+004E   393F           00160         andlw   0x3f            ;Extrae los 6 primeros bits
+004F   3A0B           00161         xorlw   0x0b            ;Mas al Reloj 1?
+0050   1903           00162         btfsc   STATUS,Z        ;No entonces salta
+0051   2???           00163         call    IncHra2         ;llama rutina de incremento a de Horas 1
+                      00164 ;
+0052   080E           00165         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+0053   393F           00166         andlw   0x3f            ;Extrae los 6 primeros bits
+0054   3A13           00167         xorlw   0x13            ;Menos al Reloj 1?
+0055   1903           00168         btfsc   STATUS,Z        ;No entonces salta
+0056   2???           00169         call    DecHra2         ;llama rutina de decremento de Horas 1
+                      00170 ;
+0057   080E           00171         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+0058   393F           00172         andlw   0x3f            ;Extrae los 6 primeros bits
+0059   3A0D           00173         xorlw   0x0d            ;Mas al Reloj 2?
+005A   1903           00174         btfsc   STATUS,Z        ;No entonces salta
+005B   2???           00175         call    IncHra1         ;llama rutina de incremento de Horas 2
+                      00176 ;
+005C   080E           00177         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+005D   393F           00178         andlw   0x3f            ;Extrae los 6 primeros bits
+005E   3A15           00179         xorlw   0x15            ;Menos al Reloj 2?
+005F   1903           00180         btfsc   STATUS,Z        ;No entonces salta
+0060   2???           00181         call    DecHra1         ;llama rutina de decremento de Horas 2
+                      00182 ;
+0061   080E           00183         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+0062   393F           00184         andlw   0x3f            ;Extrae los 6 primeros bits
+0063   3A2B           00185         xorlw   0x2b            ;Mas al Reloj 1?
+0064   1903           00186         btfsc   STATUS,Z        ;No entonces salta
+0065   2???           00187         call    IncMin2         ;llama rutina de incremento a timer1
+                      00188 ;
+0066   080E           00189         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+0067   393F           00190         andlw   0x3f            ;Extrae los 6 primeros bits
+0068   3A33           00191         xorlw   0x33            ;Menos al Reloj 1?
+0069   1903           00192         btfsc   STATUS,Z        ;No entonces salta
+006A   2???           00193         call    DecMin2         ;llama rutina de decremento a minutos1
+                      00194 ;
+006B   080E           00195         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+006C   393F           00196         andlw   0x3f            ;Extrae los 6 primeros bits
+006D   3A2D           00197         xorlw   0x2d            ;Mas al Reloj 2?
+006E   1903           00198         btfsc   STATUS,Z        ;No entonces salta
+006F   2???           00199         call    IncMin1         ;llama rutina de incremento a timer2
+                      00200 ;
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE  5
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0070   080E           00201         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+0071   393F           00202         andlw   0x3f            ;Extrae los 6 primeros bits
+0072   3A35           00203         xorlw   0x35            ;Menos al Reloj 2?
+0073   1903           00204         btfsc   STATUS,Z        ;No entonces salta
+0074   2???           00205         call    DecMin1         ;llama rutina de decremento a minutos 2
+                      00206 ;
+0075   080E           00207         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+0076   3901           00208         andlw   0x01            ;Extrae el bit de pausa
+0077   3A01           00209         xorlw   0x01            ;Esta en Pausa?
+0078   1903           00210         btfsc   STATUS,Z        ;No entonces salta
+0079   2???           00211         call    NoSignos        ;Pone a 0 los bits de signo
+                      00212 ;
+007A   2???           00213         call    UpdateDisplay   ;Update Display
+007B   0009           00214         retfie                  ;Retorno de interrupcion
+                      00215 ;
+007C                  00216 NoSignos
+007C   118E           00217         bcf     TecStatus,Mas   ;Pone 0 en Mas
+007D   120E           00218         bcf     TecStatus,Menos ;Pone 0 en Menos
+007E   300F           00219         movlw   0x0f
+007F   00A2           00220         movwf   Puntos2
+0080   00A1           00221         movwf   Puntos1
+0081   0008           00222         return
+                      00223 ;
+0082                  00224 DelayTec
+0082   0A12           00225         incf    CountP,W        ;Incrementa el contador y se guarda en W, CountP no cambia
+0083   3A0A           00226         xorlw   .10             ;Verifica si CountP llega a 10
+0084   1903           00227         btfsc   STATUS,Z        ;No entonces retorna
+0085   2???           00228         goto    LeeTeclas       ;Si es 50 entonces llama a LeeTeclas
+0086   0A92           00229         incf    CountP,F        ;incrementa el contador y lo guarda en CountP
+0087   0008           00230         return                  
+                      00231 ;
+0088                  00232 LeeTeclas
+0088   0192           00233         clrf    CountP          ;Borra el contador
+0089   2???           00234         call    FlancoP
+008A   2???           00235         call    FlancoJ1
+008B   2???           00236         call    FlancoJ2
+008C   2???           00237         call    FlancoMas
+008D   2???           00238         call    FlancoMenos
+008E   0008           00239         return
+                      00240 ;
+008F                  00241 FlancoP
+008F   0D9C           00242         rlf     FPausa,F        ;Rota a la izq el FPausa
+0090   1805           00243         btfsc   PORTA,Pausa     ;Si Pausa esta en cero salta
+0091   141C           00244         bsf     FPausa,0        ;Coloca en 1 el bit 0 de FPausa
+0092   1C05           00245         btfss   PORTA,Pausa     ;Si Pausa esta en uno salta
+0093   101C           00246         bcf     FPausa,0        ;Coloca en 0 el bit 0 de FPausa
+0094   081C           00247         movf    FPausa,W        ;Guarda FPausa en W
+0095   3903           00248         andlw   0x03            ;Extrae el bit 0 y 1
+0096   3A01           00249         xorlw   0x01            ;Hay FPausa de subida?
+0097   1903           00250         btfsc   STATUS,Z        ;No entonces salta
+0098   2???           00251         call    ToggleP         ;Toggle de Pausa
+0099   0008           00252         return
+                      00253 ;
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE  6
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+009A                  00254 ToggleP
+009A   180E           00255         btfsc   TecStatus,Pausa ;Si Pausa esta en cero salta
+009B   2???           00256         goto    CeroP
+009C   080E           00257         movf    TecStatus,W
+009D   008F           00258         movwf   TecTemp
+009E   140E           00259         bsf     TecStatus,Pausa         ;Coloca en 1 el bit de Pausa
+009F   118E           00260         bcf     TecStatus,Mas           ;Coloca en 0 el bit de Mas
+00A0   120E           00261         bcf     TecStatus,Menos         ;Coloca en 0 el bit de Menos
+00A1   128E           00262         bcf     TecStatus,HraMin        ;Coloca en 0 el bit de Hora/Minuto
+00A2   0008           00263         return
+                      00264 ;
+00A3   080F           00265 CeroP   movf    TecTemp,W
+00A4   008E           00266         movwf   TecStatus
+00A5   108E           00267         bcf     TecStatus,J1            ;Desactiva J1
+00A6   110E           00268         bcf     TecStatus,J2            ;Desactiva J2
+00A7   128E           00269         bcf     TecStatus,HraMin        ;Coloca en 0 el bit de Hora/Minuto
+00A8   0008           00270         return
+                      00271 ;
+00A9                  00272 FlancoJ1
+00A9   0D9D           00273         rlf     FJ1,F           ;Rota a la izq el FJ1
+00AA   1885           00274         btfsc   PORTA,J1        ;Si J1 esta en cero salta
+00AB   141D           00275         bsf     FJ1,0           ;Coloca en 1 el bit 0 de FJ1
+00AC   1C85           00276         btfss   PORTA,J1        ;Si J1 esta en uno salta
+00AD   101D           00277         bcf     FJ1,0           ;Coloca en 0 el bit 0 de FJ1
+00AE   081D           00278         movf    FJ1,W           ;Guarda FJ1 en W
+00AF   3903           00279         andlw   0x03            ;Extrae el bit 0 y 1
+00B0   3A01           00280         xorlw   0x01            ;Hay FJ1 de subida?
+00B1   1903           00281         btfsc   STATUS,Z        ;No entonces salta
+00B2   2???           00282         call    PulsaJ1
+00B3   0008           00283         return
+                      00284 ;
+00B4                  00285 PulsaJ1
+00B4   148E           00286         bsf     TecStatus,J1
+00B5   110E           00287         bcf     TecStatus,J2
+00B6   180E           00288         btfsc   TecStatus,Pausa         ;Si Pausa esta en cero salta
+00B7   2???           00289         goto    SelHraMin               ;Cambia para ajustar Hora o Minuto
+00B8   128E           00290         bcf     TecStatus,HraMin        ;Pone a Hora
+00B9   0008           00291         return
+                      00292 ;
+00BA                  00293 FlancoJ2
+00BA   0D9E           00294         rlf     FJ2,F           ;Rota a la izq el FJ2
+00BB   1905           00295         btfsc   PORTA,J2        ;Si J2 esta en cero salta
+00BC   141E           00296         bsf     FJ2,0           ;Coloca en 1 el bit 0 de FJ2
+00BD   1D05           00297         btfss   PORTA,J2        ;Si J2 esta en uno salta
+00BE   101E           00298         bcf     FJ2,0           ;Coloca en 0 el bit 0 de FJ2
+00BF   081E           00299         movf    FJ2,W           ;Guarda FJ2 en W
+00C0   3903           00300         andlw   0x03            ;Extrae el bit 0 y 1
+00C1   3A01           00301         xorlw   0x01            ;Hay FJ2 de subida?
+00C2   1903           00302         btfsc   STATUS,Z        ;No entonces salta
+00C3   2???           00303         call    PulsaJ2
+00C4   0008           00304         return
+                      00305 ;
+00C5                  00306 PulsaJ2
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE  7
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00C5   108E           00307         bcf     TecStatus,J1
+00C6   150E           00308         bsf     TecStatus,J2
+00C7   180E           00309         btfsc   TecStatus,Pausa         ;Si Pausa esta en cero salta
+00C8   2???           00310         goto    SelHraMin               ;Cambia para ajustar Hora o Minuto
+00C9   128E           00311         bcf     TecStatus,HraMin        ;Pone a Hora
+00CA   0008           00312         return
+                      00313 ;
+00CB                  00314 SelHraMin
+00CB   1A8E           00315         btfsc   TecStatus,HraMin        ;Si esta 0 en Hora salta
+00CC   2???           00316         goto    PoneHora
+00CD   168E           00317         bsf     TecStatus,HraMin        ;Coloca 1 a Minuto
+00CE   0008           00318         return
+00CF                  00319 PoneHora
+00CF   128E           00320         bcf     TecStatus,HraMin        ;Coloca en 0 a Hora
+00D0   0008           00321         return
+                      00322 ;
+00D1                  00323 FlancoMas
+00D1   0D9F           00324         rlf     FMas,F          ;Rota a la izq el FMas
+00D2   1985           00325         btfsc   PORTA,Mas       ;Si Mas esta en cero salta
+00D3   141F           00326         bsf     FMas,0          ;Coloca en 1 el bit 0 de FMas
+00D4   1D85           00327         btfss   PORTA,Mas       ;Si Mas esta en uno salta
+00D5   101F           00328         bcf     FMas,0          ;Coloca en 0 el bit 0 de FMas
+00D6   081F           00329         movf    FMas,W          ;Guarda FMas en W
+00D7   3903           00330         andlw   0x03            ;Extrae el bit 0 y 1
+00D8   3A01           00331         xorlw   0x01            ;Hay FMas de subida?
+00D9   1903           00332         btfsc   STATUS,Z        ;No entonces salta
+00DA   2???           00333         call    ActivaMas
+00DB   0008           00334         return
+                      00335 ;
+00DC                  00336 ActivaMas
+00DC   158E           00337         bsf     TecStatus,Mas   ;Pone 1 en Mas
+00DD   120E           00338         bcf     TecStatus,Menos ;Pone 0 en Menos
+00DE   0008           00339         return
+                      00340 ;
+00DF                  00341 FlancoMenos
+00DF   0DA0           00342         rlf     FMenos,F        ;Rota a la izq el FMenos
+00E0   1A05           00343         btfsc   PORTA,Menos     ;Si Menos esta en cero salta
+00E1   1420           00344         bsf     FMenos,0        ;Coloca en 1 el bit 0 de FMenos
+00E2   1E05           00345         btfss   PORTA,Menos     ;Si Menos esta en uno salta
+00E3   1020           00346         bcf     FMenos,0        ;Coloca en 0 el bit 0 de FMenos
+00E4   0820           00347         movf    FMenos,W        ;Guarda FMenos en W
+00E5   3903           00348         andlw   0x03            ;Extrae el bit 0 y 1
+00E6   3A01           00349         xorlw   0x01            ;Hay FMenos de subida?
+00E7   1903           00350         btfsc   STATUS,Z        ;No entonces salta
+00E8   2???           00351         call    ActivaMenos
+00E9   0008           00352         return
+                      00353 ;
+00EA                  00354 ActivaMenos
+00EA   160E           00355         bsf     TecStatus,Menos ;Pone 1 en Menos
+00EB   118E           00356         bcf     TecStatus,Mas   ;Pone 0 en Mas
+00EC   0008           00357         return
+                      00358 ;
+00ED                  00359 T1_a_Temp
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE  8
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+00ED   0813           00360         movf    HraTime1,W
+00EE   0099           00361         movwf   HraTemp         ;Copia Hora 1 en Hora Temporal
+00EF   0814           00362         movf    MinTime1,W
+00F0   009A           00363         movwf   MinTemp         ;Copia Minuto1 en Minuto Temporal
+00F1   0815           00364         movf    SegTime1,W
+00F2   009B           00365         movwf   SegTemp         ;Copia Segundo1 en Segundo Temporal
+00F3   0008           00366         return
+00F4                  00367 Temp_a_T1
+00F4   0819           00368         movf    HraTemp,W
+00F5   0093           00369         movwf   HraTime1        ;Devuelve Hora temporal a Hora1
+00F6   081A           00370         movf    MinTemp,W
+00F7   0094           00371         movwf   MinTime1        ;Devuelve Minuto temporal a Minuto1
+00F8   081B           00372         movf    SegTemp,W
+00F9   0095           00373         movwf   SegTime1        ;Devuelve Segundo temporal a Segundo1
+00FA   0008           00374         return
+00FB                  00375 T2_a_Temp
+00FB   0816           00376         movf    HraTime2,W
+00FC   0099           00377         movwf   HraTemp         ;Copia Hora 2 en Hora Temporal
+00FD   0817           00378         movf    MinTime2,W
+00FE   009A           00379         movwf   MinTemp         ;Copia Minuto2 en Minuto Temporal
+00FF   0818           00380         movf    SegTime2,W
+0100   009B           00381         movwf   SegTemp         ;Copia Segundo2 en Segundo Temporal
+0101   0008           00382         return
+0102                  00383 Temp_a_T2
+0102   0819           00384         movf    HraTemp,W
+0103   0096           00385         movwf   HraTime2        ;Devuelve Hora temporal a Hora2
+0104   081A           00386         movf    MinTemp,W
+0105   0097           00387         movwf   MinTime2        ;Devuelve Minuto temporal a Minuto2
+0106   081B           00388         movf    SegTemp,W
+0107   0098           00389         movwf   SegTime2        ;Devuelve Segundo temporal a Segundo2
+0108   0008           00390         return
+                      00391 ;
+0109                  00392 IncHra1
+0109   2???           00393         call    T1_a_Temp       ;Copia T1 a temporales
+010A   2???           00394         call    IncHraTemp      ;Incrementa las Horas
+010B   2???           00395         call    Temp_a_T1       ;Devuelve Temporales a T1
+010C   0008           00396         return
+                      00397 ;
+010D                  00398 IncMin1
+010D   2???           00399         call    T1_a_Temp       ;Copia T1 a temporales
+010E   2???           00400         call    IncMinTemp      ;Incrementa los minutos
+010F   2???           00401         call    Temp_a_T1       ;Devuelve Temporales a T1
+0110   0008           00402         return
+                      00403 ;
+0111                  00404 IncHra2
+0111   2???           00405         call    T2_a_Temp       ;Copia T2 a temporales
+0112   2???           00406         call    IncHraTemp      ;Incrementa las Horas
+0113   2???           00407         call    Temp_a_T2       ;Devuelve Temporales a T2
+0114   0008           00408         return
+                      00409 ;
+0115                  00410 IncMin2
+0115   2???           00411         call    T2_a_Temp       ;Copia T2 a temporales
+0116   2???           00412         call    IncMinTemp      ;Incrementa los minutos
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE  9
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0117   2???           00413         call    Temp_a_T2       ;Devuelve Temporales a T2
+0118   0008           00414         return
+                      00415 ;
+0119                  00416 DecHra1
+0119   2???           00417         call    T1_a_Temp       ;Copia T1 a temporales
+011A   2???           00418         call    DecHraTemp      ;Decrementa las Horas
+011B   019B           00419         clrf    SegTemp         ;Pone a 0 los segundos
+011C   2???           00420         call    Temp_a_T1       ;Devuelve Temporales a T1
+011D   0008           00421         return
+011E                  00422 DecMin1
+011E   2???           00423         call    T1_a_Temp       ;Copia T1 a temporales
+011F   2???           00424         call    DecMinTemp      ;Decrementa los minutos
+0120   019B           00425         clrf    SegTemp         ;Pone a 0 los segundos
+0121   2???           00426         call    Temp_a_T1       ;Devuelve Temporales a T1
+0122   0008           00427         return
+                      00428 ;
+0123                  00429 DecHra2
+0123   2???           00430         call    T2_a_Temp       ;Copia T2 a temporales
+0124   2???           00431         call    DecHraTemp      ;Decrementa las Horas
+0125   019B           00432         clrf    SegTemp         ;Pone a 0 los segundos
+0126   2???           00433         call    Temp_a_T2       ;Devuelve Temporales a T2
+0127   0008           00434         return
+                      00435 ;
+0128                  00436 DecMin2
+0128   2???           00437         call    T2_a_Temp       ;Copia T2 a temporales
+0129   2???           00438         call    DecMinTemp      ;Decrementa los minutos
+012A   019B           00439         clrf    SegTemp         ;Pone a 0 los segundos
+012B   2???           00440         call    Temp_a_T2       ;Devuelve Temporales a T2
+012C   0008           00441         return
+                      00442 ;
+                      00443 ;**************************
+012D                  00444 IncTimer1
+012D   0A10           00445         incf    Count1,W        ;Incrementa el contador y se guarda en W, Count1 no cambia
+012E   3AC3           00446         xorlw   .195            ;Verifica si Count1 llega a 195
+012F   1903           00447         btfsc   STATUS,Z        ;No entonces retorna
+0130   2???           00448         goto    Doitagain       ;Si es 195 entonces llama a Doitagain
+0131   0A90           00449         incf    Count1,F        ;incrementa el contador y lo guarda en Count1
+0132   0008           00450         return
+                      00451 ;
+0133                  00452 Doitagain
+0133   0190           00453         clrf    Count1
+0134   0A23           00454         incf    Countagain,W
+0135   3A02           00455         xorlw   .2
+0136   1903           00456         btfsc   STATUS,Z
+0137   2???           00457         goto    DoIncTime1
+Message[305]: Using default destination of 1 (file).
+0138   0AA3           00458         incf    Countagain
+0139   2???           00459         call    Quitaptos1      ;Borra los 2 puntos reloj 1
+013A   0008           00460         return
+                      00461 ;
+013B                  00462 DoIncTime1
+013B   2???           00463         call    Poneptos1       ;enciende los 2 puntos reloj1
+013C   01A3           00464         clrf    Countagain      ;Borra el contador
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 10
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+013D   2???           00465         call    T1_a_Temp
+013E   2???           00466         call    DoIncTemp       ;Llama a rutina de incremento de tiempo con Timer1 como parametro
+013F   2???           00467         call    Temp_a_T1
+0140   0008           00468         return
+                      00469 ;
+0141                  00470 Poneptos1
+0141   3002           00471         movlw   0x02
+0142   00A1           00472         movwf   Puntos1
+0143   0008           00473         return
+0144                  00474 Quitaptos1
+0144   300F           00475         movlw   0x0f
+0145   00A1           00476         movwf   Puntos1
+0146   0008           00477         return
+                      00478 ;
+0147                  00479 IncTimer2
+0147   0A11           00480         incf    Count2,W        ;Incrementa el contador y se guarda en W, Count2 no cambia
+0148   3AC3           00481         xorlw   .195            ;Verifica si Count2 llega a 250
+0149   1903           00482         btfsc   STATUS,Z        ;No entonces retorna
+014A   2???           00483         goto    Doitagain1      ;Si es 250 entonces llama a DoIncTime2
+014B   0A91           00484         incf    Count2,F        ;incrementa el contador y lo guarda en Count2
+014C   0008           00485         return
+                      00486 ;
+014D                  00487 Doitagain1
+014D   0191           00488         clrf    Count2
+014E   0A24           00489         incf    Countagain1,W
+014F   3A02           00490         xorlw   .2
+0150   1903           00491         btfsc   STATUS,Z
+0151   2???           00492         goto    DoIncTime2
+Message[305]: Using default destination of 1 (file).
+0152   0AA4           00493         incf    Countagain1
+0153   2???           00494         call    Quitaptos2
+0154   0008           00495         return
+                      00496 ;
+0155                  00497 DoIncTime2
+0155   2???           00498         call    Poneptos2
+0156   01A4           00499         clrf    Countagain1     ;Borra el contador
+0157   2???           00500         call    T2_a_Temp
+0158   2???           00501         call    DoIncTemp       ;Llama a rutina de incremento de tiempo con Timer2 como parametro
+0159   2???           00502         call    Temp_a_T2
+015A   0008           00503         return
+                      00504 ;
+015B                  00505 Poneptos2
+015B   3002           00506         movlw   0x02
+015C   00A2           00507         movwf   Puntos2
+015D   0008           00508         return
+                      00509 ;
+015E                  00510 Quitaptos2
+015E   300F           00511         movlw   0x0f
+015F   00A2           00512         movwf   Puntos2
+0160   0008           00513         return
+                      00514 ;
+0161                  00515 DoIncTemp
+0161   0A1B           00516         incf    SegTemp,W       ;Obtiene SegTemp+1 en W
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 11
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0162   390F           00517         andlw   0x0f            ;Enmascara los 4 bits de mayor peso
+0163   3A0A           00518         xorlw   0x0a            ;es igual a 10?
+0164   1903           00519         btfsc   STATUS,Z        ;No entonces salta
+0165   2???           00520         goto    Ind2DTemp       ;si es igual a 10 incrementa el segundo Digito
+0166   0A9B           00521         incf    SegTemp,F       ;Incrementa el 1er digito
+0167   0008           00522         return
+                      00523 ;
+0168                  00524 Ind2DTemp
+0168   0E1B           00525         swapf   SegTemp,W       ;Obtiene la Posicion de mayor peso y la guarda en w
+0169   390F           00526         andlw   0x0f            ;Enmascara el digito de menor peso
+016A   3E01           00527         addlw   1               ;
+016B   009B           00528         movwf   SegTemp         ;incrementa SegTemp, El digito de menor peso pasa a 0
+016C   0E9B           00529         swapf   SegTemp,F       ;coloca el digito de mayor peso en su lugar
+016D   3A06           00530         xorlw   0x06            ;El digito de mayor peso vale 6??
+016E   1903           00531         btfsc   STATUS,Z        ;No entonces salta
+016F   2???           00532         goto    Inc3DTemp       ;Si es 6 Entonces Incrementa el Tercer Digito
+0170   0008           00533         return
+                      00534 ;
+0171                  00535 Inc3DTemp
+0171   019B           00536         clrf    SegTemp         ;Borra los segundos
+0172   0A1A           00537         Incf    MinTemp,W       ;Obtiene el tercer digito
+0173   390F           00538         andlw   0x0f            ;Enmascara el cuarto digito
+0174   3A0A           00539         xorlw   0x0a            ;Pregunta si vale 10?
+0175   1903           00540         btfsc   STATUS,Z        ;No entonces salta
+0176   2???           00541         goto    Inc4DTemp       ;Si vale 10, Incrementa el Cuarto Digito
+0177   0A9A           00542         incf    MinTemp,F       ;Incrementa el tercer digito
+0178   0008           00543         return
+                      00544 ;
+0179                  00545 Inc4DTemp
+0179   0E1A           00546         swapf   MinTemp,W       ;Obtiene la Posicion de mayor peso y la guarda en w
+017A   390F           00547         andlw   0x0f            ;Enmascara el digito de menor peso
+017B   3E01           00548         addlw   1               ;
+017C   009A           00549         movwf   MinTemp         ;incrementa MinTemp, El digito de menor peso pasa a 0
+017D   0E9A           00550         swapf   MinTemp,F       ;coloca el digito de mayor peso en su lugar
+017E   3A06           00551         xorlw   0x06            ;El digito de mayor peso vale 6??
+017F   1903           00552         btfsc   STATUS,Z        ;No entonces salta
+0180   2???           00553         goto    IncHora         ;Si es 6 Entonces Incrementa la Hora
+0181   0008           00554         return
+                      00555 ;
+0182                  00556 IncHora
+0182   019A           00557         clrf    MinTemp         ;Borra los Minutos
+0183   2???           00558         goto    IncHraTemp
+0184   0008           00559         return
+                      00560 ;
+0185                  00561 IncHraTemp
+0185   0A19           00562         Incf    HraTemp,W       ;Incrementa Hora
+0186   3A0A           00563         xorlw   0x0a            ;Pregunta si vale 10?
+0187   1903           00564         btfsc   STATUS,Z        ;No entonces salta
+0188   2???           00565         goto    Hora10
+0189   0A19           00566         Incf    HraTemp,W       ;Incrementa Hora
+018A   3A1A           00567         xorlw   0x1a            ;Pregunta si vale 20?
+018B   1903           00568         btfsc   STATUS,Z        ;No entonces salta
+018C   2???           00569         goto    Hora20
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 12
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+018D   0A19           00570         Incf    HraTemp,W       ;Incrementa Hora
+018E   3A24           00571         xorlw   0x24            ;Pregunta si vale 24?
+018F   1903           00572         btfsc   STATUS,Z        ;No entonces salta
+0190   2???           00573         goto    Hora24
+0191   0A99           00574         incf    HraTemp,F       ;Incrementa la hora
+0192   0008           00575         return
+                      00576 ;
+0193                  00577 Hora10
+0193   3010           00578         movlw   0x10            ;carga w con 10 
+0194   0099           00579         movwf   HraTemp         ;Pasa W a Hora Temporal
+0195   0008           00580         return
+0196                  00581 Hora20
+0196   3020           00582         movlw   0x20            ;carga w con 20
+0197   0099           00583         movwf   HraTemp         ;Pasa W a Hora Temporal
+0198   0008           00584         return
+0199                  00585 Hora24
+0199   3000           00586         movlw   0x00            ;carga w con 00
+019A   0099           00587         movwf   HraTemp         ;Pasa W a Hora Temporal
+019B   0008           00588         return
+                      00589 ;
+019C                  00590 IncMinTemp
+019C   019B           00591         clrf    SegTemp         ;Borra los segundos
+019D   0A1A           00592         Incf    MinTemp,W       ;Obtiene el tercer digito
+019E   390F           00593         andlw   0x0f            ;Enmascara el cuarto digito
+019F   3A0A           00594         xorlw   0x0a            ;Pregunta si vale 10?
+01A0   1903           00595         btfsc   STATUS,Z        ;No entonces salta
+01A1   2???           00596         goto    Inc4MTemp       ;Si vale 10, Incrementa el Cuarto Digito
+01A2   0A9A           00597         incf    MinTemp,F       ;Incrementa el tercer digito
+01A3   0008           00598         return
+                      00599 ;
+01A4                  00600 Inc4MTemp
+01A4   0E1A           00601         swapf   MinTemp,W       ;Obtiene la Posicion de mayor peso y la guarda en w
+01A5   390F           00602         andlw   0x0f            ;Enmascara el digito de menor peso
+01A6   3E01           00603         addlw   1               ;
+01A7   009A           00604         movwf   MinTemp         ;incrementa MinTemp, El digito de menor peso pasa a 0
+01A8   0E9A           00605         swapf   MinTemp,F       ;coloca el digito de mayor peso en su lugar
+01A9   3A06           00606         xorlw   0x06            ;El digito de mayor peso vale 6??
+01AA   1903           00607         btfsc   STATUS,Z        ;No entonces salta
+01AB   019A           00608         clrf    MinTemp         ;Pone minutos en 0
+01AC   0008           00609         return
+                      00610 ;
+01AD                  00611 DecTimer1
+01AD   0A10           00612         incf    Count1,W        ;Incrementa el contador y se guarda en W, Count1 no cambia
+01AE   3AC3           00613         xorlw   .195            ;Verifica si Count1 llega a 195
+01AF   1903           00614         btfsc   STATUS,Z        ;No entonces retorna
+01B0   2???           00615         goto    Doitagain2      ;Si es 250 entonces llama a DoDecTime
+01B1   0A90           00616         incf    Count1,F        ;incrementa el contador y lo guarda en Count1
+01B2   0008           00617         return                  
+                      00618 ;
+01B3                  00619 Doitagain2
+01B3   0190           00620         clrf    Count1
+01B4   0A23           00621         incf    Countagain,W
+01B5   3A02           00622         xorlw   .2
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 13
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+01B6   1903           00623         btfsc   STATUS,Z
+01B7   2???           00624         goto    DoDecTime1
+Message[305]: Using default destination of 1 (file).
+01B8   0AA3           00625         incf    Countagain
+01B9   2???           00626         call    Quitaptos1
+01BA   0008           00627         return
+                      00628 ;
+01BB                  00629 DoDecTime1
+01BB   2???           00630         call    Poneptos1
+01BC   01A3           00631         clrf    Countagain      ;Borra el contador
+01BD   2???           00632         call    T1_a_Temp
+01BE   2???           00633         call    DoDecTemp       ;Llama a rutina de decremento de tiempo con Timer1 como parametro
+01BF   2???           00634         call    Temp_a_T1
+01C0   0008           00635         return
+                      00636 ;
+01C1                  00637 DecTimer2
+01C1   0A11           00638         incf    Count2,W        ;Incrementa el contador y se guarda en W, Count2 no cambia
+01C2   3AC3           00639         xorlw   .195            ;Verifica si Count2 llega a 250
+01C3   1903           00640         btfsc   STATUS,Z        ;No entonces retorna
+01C4   2???           00641         goto    Doitagain3      ;Si es 250 entonces llama a DoDecTime2
+01C5   0A91           00642         incf    Count2,F        ;incrementa el contador y lo guarda en Count2
+01C6   0008           00643         return                  
+                      00644 ;
+01C7                  00645 Doitagain3
+01C7   0191           00646         clrf    Count2
+01C8   0A24           00647         incf    Countagain1,W
+01C9   3A02           00648         xorlw   .2
+01CA   1903           00649         btfsc   STATUS,Z
+01CB   2???           00650         goto    DoDecTime2
+Message[305]: Using default destination of 1 (file).
+01CC   0AA4           00651         incf    Countagain1
+01CD   2???           00652         call    Quitaptos2
+01CE   0008           00653         return
+                      00654 ;       
+01CF                  00655 DoDecTime2
+01CF   2???           00656         call    Poneptos2
+01D0   01A4           00657         clrf    Countagain1             ;Borra el contador
+01D1   2???           00658         call    T2_a_Temp
+01D2   2???           00659         call    DoDecTemp       ;Llama a rutina de decremento de tiempo con Timer2 como parametro
+01D3   2???           00660         call    Temp_a_T2
+01D4   0008           00661         return
+                      00662 ;
+01D5                  00663 DoDecTemp
+01D5   031B           00664         decf    SegTemp,W       ;Obtiene SegTemp-1 en W
+01D6   390F           00665         andlw   0x0f            ;Enmascara los 4 bits de mayor peso
+01D7   3A0F           00666         xorlw   0x0f            ;es igual a -1?
+01D8   1903           00667         btfsc   STATUS,Z        ;No entonces salta
+01D9   2???           00668         goto    Dec2DTemp       ;si es igual a -1 decrementa el segundo Digito
+01DA   039B           00669         decf    SegTemp,F       ;Decrementa el 1er digito
+01DB   0008           00670         return
+                      00671 ;
+01DC                  00672 Dec2DTemp
+01DC   0E1B           00673         swapf   SegTemp,W       ;Obtiene la Posicion de mayor peso y la guarda en w
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 14
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+01DD   390F           00674         andlw   0x0f            ;Enmascara el digito de menor peso
+01DE   008D           00675         movwf   TempD
+01DF   030D           00676         decf    TempD,W
+01E0   390F           00677         andlw   0x0f            ;Pone a 0 los primeros 4 bits de W
+01E1   3890           00678         iorlw   0x90            ;Coloca 9 en primer digito
+01E2   009B           00679         movwf   SegTemp         ;Decrementa SegTemp, El digito de menor peso pasa a 9
+01E3   0E9B           00680         swapf   SegTemp,F       ;coloca el digito de mayor peso en su lugar
+01E4   3A9F           00681         xorlw   0x9f            ;el segundo digito es igual a -1?
+01E5   1903           00682         btfsc   STATUS,Z        ;No entonces salta
+01E6   2???           00683         goto    Dec3DTemp       ;Si es -1 Entonces Decrementa el Tercer Digito
+01E7   0008           00684         return
+                      00685 ;
+01E8                  00686 Dec3DTemp
+01E8   3059           00687         movlw   0x59            ;Carga 59 en W
+01E9   009B           00688         movwf   SegTemp         ;Coloca los segundos en 59
+01EA   031A           00689         decf    MinTemp,W       ;Obtiene el tercer digito
+01EB   390F           00690         andlw   0x0f            ;Enmascara el tercer digito
+01EC   3A0F           00691         xorlw   0x0f            ;Pregunta si vale -1?
+01ED   1903           00692         btfsc   STATUS,Z        ;No entonces salta
+01EE   2???           00693         goto    Dec4DTemp       ;Si vale -1, Decrementa el Cuarto Digito
+01EF   039A           00694         decf    MinTemp,F       ;Decrementa el tercer digito
+01F0   0008           00695         return
+                      00696 ;
+01F1                  00697 Dec4DTemp
+01F1   0E1A           00698         swapf   MinTemp,W       ;Obtiene el cuarto digito
+01F2   390F           00699         andlw   0x0f            ;enmascara el tercer digito
+01F3   008D           00700         movwf   TempD
+01F4   030D           00701         decf    TempD,W         ;decrementa el cuarto digito
+01F5   390F           00702         andlw   0x0f            ;Pone a 0 los primeros 4 bits de W
+01F6   3890           00703         iorlw   0x90            ;Coloca 9 en primer digito
+01F7   009A           00704         movwf   MinTemp         ;Decrementa MinTemp, El digito de menor peso pasa a 9
+01F8   0E9A           00705         swapf   MinTemp,F       ;coloca el digito de mayor peso en su lugar
+01F9   3A9F           00706         xorlw   0x9f            ;el segundo digito es igual a -1?
+01FA   1903           00707         btfsc   STATUS,Z        ;No entonces salta
+01FB   2???           00708         goto    DecHora
+01FC   0008           00709         return
+                      00710 ;
+01FD                  00711 DecHora
+01FD   3059           00712         movlw   0x59            ;Carga 59 en W
+01FE   009A           00713         movwf   MinTemp         ;Coloca los minutos en 59
+01FF   2???           00714         goto    DecHraTemp
+0200   0008           00715         return
+                      00716 ;
+0201                  00717 DecHraTemp
+0201   0319           00718         decf    HraTemp,W       ;Decrementa Hora
+0202   3AFF           00719         xorlw   0xff            ;Pregunta si vale -1?
+0203   1903           00720         btfsc   STATUS,Z        ;No entonces salta
+0204   2???           00721         goto    Hora23
+0205   0319           00722         decf    HraTemp,W       ;Decrementa Hora
+0206   3A1F           00723         xorlw   0x1f            ;Pregunta si vale 19?
+0207   1903           00724         btfsc   STATUS,Z        ;No entonces salta
+0208   2???           00725         goto    Hora19
+0209   0319           00726         decf    HraTemp,W       ;Decrementa Hora
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 15
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+020A   3A0F           00727         xorlw   0x0f            ;Pregunta si vale 9?
+020B   1903           00728         btfsc   STATUS,Z        ;No entonces salta
+020C   2???           00729         goto    Hora9
+020D   0399           00730         decf    HraTemp,F       ;Decrementa la hora
+020E   0008           00731         return
+                      00732 ;
+020F                  00733 Hora23
+020F   3023           00734         movlw   0x23            ;carga w con 23
+0210   0099           00735         movwf   HraTemp         ;Pasa W a Hora Temporal
+0211   0008           00736         return
+0212                  00737 Hora19
+0212   3019           00738         movlw   0x19            ;carga w con 19
+0213   0099           00739         movwf   HraTemp         ;Pasa W a Hora Temporal
+0214   0008           00740         return
+0215                  00741 Hora9
+0215   3009           00742         movlw   0x09            ;carga w con 09
+0216   0099           00743         movwf   HraTemp         ;Pasa W a Hora Temporal
+0217   0008           00744         return
+                      00745 ;
+0218                  00746 DecMinTemp
+0218   031A           00747         decf    MinTemp,W       ;Obtiene el tercer digito
+0219   390F           00748         andlw   0x0f            ;Enmascara el tercer digito
+021A   3A0F           00749         xorlw   0x0f            ;Pregunta si vale -1?
+021B   1903           00750         btfsc   STATUS,Z        ;No entonces salta
+021C   2???           00751         goto    Dec4MTemp       ;Si vale -1, Decrementa el Cuarto Digito
+021D   039A           00752         decf    MinTemp,F       ;Decrementa el tercer digito
+021E   0008           00753         return
+                      00754 ;
+021F                  00755 Dec4MTemp
+021F   0E1A           00756         swapf   MinTemp,W       ;Obtiene el cuarto digito
+0220   390F           00757         andlw   0x0f            ;enmascara el tercer digito
+0221   008D           00758         movwf   TempD
+0222   030D           00759         decf    TempD,W         ;decrementa el cuarto digito
+0223   390F           00760         andlw   0x0f            ;Pone a 0 los primeros 4 bits de W
+0224   3890           00761         iorlw   0x90            ;Coloca 9 en primer digito
+0225   009A           00762         movwf   MinTemp         ;Decrementa MinTemp, El digito de menor peso pasa a 9
+0226   0E9A           00763         swapf   MinTemp,F       ;coloca el digito de mayor peso en su lugar
+0227   3A9F           00764         xorlw   0x9f            ;el segundo digito es igual a -1?
+0228   1903           00765         btfsc   STATUS,Z        ;No entonces salta
+0229   2???           00766         goto    Minuto59        ;Pone minutos en 59
+022A   0008           00767         return
+                      00768 ;
+022B                  00769 Minuto59
+022B   3059           00770         movlw   0x59            ;Carga 59 en W
+022C   009A           00771         movwf   MinTemp         ;Coloca los minutos en 59
+022D   0008           00772         return
+                      00773 ;
+                      00774 ;SegTemp es segundero, MinTemp es minutero y HraTemp es horario, dichos valores se
+                      00775 ;deben mandar al puerto cada 5ms para obtener la visualizacion del reloj. Este proceso
+                      00776 ;lo realiza UpdateDisplay
+                      00777 ;
+022E                  00778 UpdateDisplay
+022E   080C           00779         movf    TempC,W         ;Guarda el valor actual del puerto B en W
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 16
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+022F   3A0A           00780         xorlw   0x0a            ;Estaba mostrando los 4 puntos?
+0230   1903           00781         btfsc   STATUS,Z        ;No entonces salta
+0231   018C           00782         clrf    TempC           ;Pone el selector en 0
+0232   080C           00783         movf    TempC,W         ;Guarda TemC en W
+0233   3A00           00784         xorlw   0x00            ;es el primer digito?
+0234   1903           00785         btfsc   STATUS,Z        ;No entonces salta
+0235   2???           00786         goto    ShowD1          ;Muestra el primer display
+0236   080C           00787         movf    TempC,W         ;Guarda TemC en W
+0237   3A01           00788         xorlw   0x01            ;es el Segundo digito?
+0238   1903           00789         btfsc   STATUS,Z        ;No entonces salta
+0239   2???           00790         goto    ShowD2          ;Muestra el Segundo display
+023A   080C           00791         movf    TempC,W         ;Guarda TemC en W
+023B   3A02           00792         xorlw   0x02            ;es el Tercer digito?
+023C   1903           00793         btfsc   STATUS,Z        ;No entonces salta
+023D   2???           00794         goto    ShowD3          ;Muestra el Tercer display
+023E   080C           00795         movf    TempC,W         ;Guarda TemC en W
+023F   3A03           00796         xorlw   0x03            ;es el Cuarto digito?
+0240   1903           00797         btfsc   STATUS,Z        ;No entonces salta
+0241   2???           00798         goto    ShowD4          ;Muestra el Cuarto display
+0242   080C           00799         movf    TempC,W         ;Guarda TemC en W
+0243   3A04           00800         xorlw   0x04            ;es el Quinto digito?
+0244   1903           00801         btfsc   STATUS,Z        ;No entonces salta
+0245   2???           00802         goto    ShowD5          ;Muestra el Quinto display
+0246   080C           00803         movf    TempC,W         ;Guarda TemC en W
+0247   3A05           00804         xorlw   0x05            ;es el Sexto digito?
+0248   1903           00805         btfsc   STATUS,Z        ;No entonces salta
+0249   2???           00806         goto    ShowD6          ;Muestra el Sexto display
+024A   080C           00807         movf    TempC,W         ;Guarda TemC en W
+024B   3A06           00808         xorlw   0x06            ;es el Septimo digito?
+024C   1903           00809         btfsc   STATUS,Z        ;No entonces salta
+024D   2???           00810         goto    ShowD7          ;Muestra el Septimo display
+024E   080C           00811         movf    TempC,W         ;Guarda TemC en W
+024F   3A07           00812         xorlw   0x07            ;es el Septimo digito?
+0250   1903           00813         btfsc   STATUS,Z        ;No entonces salta
+0251   2???           00814         goto    ShowD8          ;Muestra el Septimo display
+0252   080C           00815         movf    TempC,W         ;Guarda TemC en W
+0253   3A08           00816         xorlw   0x08            ;es el Septimo digito?
+0254   1903           00817         btfsc   STATUS,Z        ;No entonces salta
+0255   2???           00818         goto    ShowPuntos1     ;Muestra puntos J1
+0256   080C           00819         movf    TempC,W         ;Guarda TemC en W
+0257   3A09           00820         xorlw   0x09            ;es el Septimo digito?
+0258   1903           00821         btfsc   STATUS,Z        ;No entonces salta
+0259   2???           00822         goto    ShowPuntos2     ;Muestra puntos J2
+                      00823         
+                      00824         
+                      00825 ;muestra los 2 puntos J1
+025A                  00826 ShowPuntos1
+025A   0821           00827         movf    Puntos1,W       ;Guarda puntos en w
+025B   390F           00828         andlw   0x0f            ;mayor peso en puntos
+025C   008D           00829         movwf   TempD           ;TempD tiene el valor de puntos
+025D   0E0C           00830         swapf   TempC,W         ;Guarda tempC en w
+025E   048D           00831         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+025F   080E           00832         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 17
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0260   3905           00833         andlw   0x05            ;Extrae los bits de Pausa y J2
+0261   3A05           00834         xorlw   0x05            ;Setup a J2?
+0262   1903           00835         btfsc   STATUS,Z        ;No entonces salta
+0263   2???           00836         goto    DelPuntos1      ;llama rutina de Borrar Display
+0264   2???           00837         goto    Displayout      ;muestra los puntos
+                      00838         
+0265                  00839 ShowPuntos2
+0265   0822           00840         movf    Puntos2,W       ;Guarda puntos en w
+0266   390F           00841         andlw   0x0f            ;mayor peso en puntos
+0267   008D           00842         movwf   TempD           ;TempD tiene el valor de puntos
+0268   0E0C           00843         swapf   TempC,W         ;Guarda tempC en w
+0269   048D           00844         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+026A   080E           00845         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+026B   3903           00846         andlw   0x03            ;Extrae los bits de Pausa y J1
+026C   3A03           00847         xorlw   0x03            ;Setup a J1?
+026D   1903           00848         btfsc   STATUS,Z        ;No entonces salta
+026E   2???           00849         goto    DelPuntos2      ;llama rutina de Borrar Display
+026F   2???           00850         goto    Displayout      ;muestra los puntos
+                      00851 
+                      00852 ;muestra 8 digito
+0270                  00853 ShowD8  
+0270   2???           00854         call    HraD8           ;Muestra horas
+0271   180E           00855         btfsc   TecStatus,Pausa ;Si Pausa esta en cero salta
+0272   2???           00856         goto    DisplayJ2
+                      00857 ;
+0273   0816           00858         movf    HraTime2,W      ;Guarda Hora en w
+0274   3A00           00859         xorlw   0x00            ;La Hora vale 0?
+0275   1903           00860         btfsc   STATUS,Z        ;No entonces salta
+0276   2???           00861         call    MinD8           ;Muestra segundos
+0277   2???           00862         goto    DisplayJ2       ;Verifica si muestra o no dependiendo de Pausa y J1
+                      00863 ;
+0278                  00864 HraD8
+0278   0E16           00865         Swapf   HraTime2,W      ;Guarda horario en w
+0279   390F           00866         andlw   0x0f            ;Borra las unidades de hora
+027A   008D           00867         movwf   TempD           ;TempD tiene el valor de las unidades de hora
+027B   0E0C           00868         swapf   TempC,W         ;Guarda tempC en w
+027C   048D           00869         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+027D   0008           00870         return
+                      00871 ;
+027E                  00872 MinD8
+027E   0E17           00873         Swapf   MinTime2,W      ;Guarda minutero en w
+027F   390F           00874         andlw   0x0f            ;Borra las unidades de minuto
+0280   008D           00875         movwf   TempD           ;TempD tiene el valor de las unidades de minuto
+0281   0E0C           00876         swapf   TempC,W         ;Guarda tempC en w
+0282   048D           00877         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+0283   0008           00878         return
+                      00879 ;
+0284                  00880 ShowD1
+0284   2???           00881         call    MinD1           ;Muestra minutos
+0285   180E           00882         btfsc   TecStatus,Pausa ;Si Pausa esta en cero salta
+0286   2???           00883         goto    DisplayJ1
+0287   0813           00884         movf    HraTime1,W      ;Guarda Hora en w
+0288   3A00           00885         xorlw   0x00            ;La Hora vale 0?
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 18
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0289   1903           00886         btfsc   STATUS,Z        ;No entonces salta
+028A   2???           00887         call    SegD1           ;Muestra segundos
+028B   2???           00888         goto    DisplayJ1       ;Verifica si muestra o no dependiendo de Pausa y J2
+                      00889 ;
+028C                  00890 MinD1
+028C   0814           00891         movf    MinTime1,W      ;Guarda Minutero en w
+028D   390F           00892         andlw   0x0f            ;Borra las decenas de minuto
+028E   008D           00893         movwf   TempD           ;TempD tiene el valor del minutero
+028F   0E0C           00894         swapf   TempC,W         ;Guarda tempC en w
+0290   048D           00895         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+0291   0008           00896         return
+                      00897 ;
+0292                  00898 SegD1
+0292   0815           00899         movf    SegTime1,W      ;Guarda Segundero en w
+0293   390F           00900         andlw   0x0f            ;Borra las decenas de segundo
+0294   008D           00901         movwf   TempD           ;TempD tiene el valor del Segundero
+0295   0E0C           00902         swapf   TempC,W         ;Guarda tempC en w
+0296   048D           00903         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+0297   0008           00904         return
+0298                  00905 ShowD2
+0298   2???           00906         call    MinD2           ;Muestra minutos
+0299   180E           00907         btfsc   TecStatus,Pausa ;Si Pausa esta en cero salta
+029A   2???           00908         goto    DisplayJ1
+029B   0813           00909         movf    HraTime1,W      ;Guarda Hora en w
+029C   3A00           00910         xorlw   0x00            ;La Hora vale 0?
+029D   1903           00911         btfsc   STATUS,Z        ;No entonces salta
+029E   2???           00912         call    SegD2           ;Muestra segundos
+029F   2???           00913         goto    DisplayJ1       ;Verifica si muestra o no dependiendo de Pausa y J2
+                      00914 ;
+02A0                  00915 MinD2
+02A0   0E14           00916         Swapf   MinTime1,W      ;Guarda minutero
+02A1   390F           00917         andlw   0x0f            ;Borra las unidades de minuto
+02A2   008D           00918         movwf   TempD           ;TempD tiene el valor del Minutero
+02A3   0E0C           00919         swapf   TempC,W         ;Guarda tempC en w
+02A4   048D           00920         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02A5   0008           00921         return
+                      00922 ;
+02A6                  00923 SegD2
+02A6   0E15           00924         Swapf   SegTime1,W      ;Guarda segundero
+02A7   390F           00925         andlw   0x0f            ;Borra las unidades de segundo
+02A8   008D           00926         movwf   TempD           ;TempD tiene el valor del Segundero
+02A9   0E0C           00927         swapf   TempC,W         ;Guarda tempC en w
+02AA   048D           00928         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02AB   0008           00929         return
+                      00930 ;
+02AC                  00931 ShowD3
+02AC   2???           00932         call    HraD3           ;Muestra horas
+02AD   180E           00933         btfsc   TecStatus,Pausa ;Si Pausa esta en cero salta
+02AE   2???           00934         goto    DisplayJ1
+02AF   0813           00935         movf    HraTime1,W      ;Guarda Hora en w
+02B0   3A00           00936         xorlw   0x00            ;La Hora vale 0?
+02B1   1903           00937         btfsc   STATUS,Z        ;No entonces salta
+02B2   2???           00938         call    MinD3           ;Muestra minutos
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 19
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+02B3   2???           00939         goto    DisplayJ1       ;Verifica si muestra o no dependiendo de Pausa y J2
+                      00940 ;
+02B4                  00941 HraD3
+02B4   0813           00942         movf    HraTime1,W      ;Guarda horario en w
+02B5   390F           00943         andlw   0x0f            ;Borra las unidades de hora
+02B6   008D           00944         movwf   TempD           ;TempD tiene el valor de las unidades de hora
+02B7   0E0C           00945         swapf   TempC,W         ;Guarda tempC en w
+02B8   048D           00946         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02B9   0008           00947         return
+                      00948 ;
+02BA                  00949 MinD3
+02BA   0814           00950         movf    MinTime1,W      ;Guarda minutero en w
+02BB   390F           00951         andlw   0x0f            ;Borra las unidades de minuto
+02BC   008D           00952         movwf   TempD           ;TempD tiene el valor de las unidades de minuto
+02BD   0E0C           00953         swapf   TempC,W         ;Guarda tempC en w
+02BE   048D           00954         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02BF   0008           00955         return
+                      00956 ;
+02C0                  00957 ShowD4
+02C0   2???           00958         call    HraD4           ;Muestra horas
+02C1   180E           00959         btfsc   TecStatus,Pausa ;Si Pausa esta en cero salta
+02C2   2???           00960         goto    DisplayJ1
+02C3   0813           00961         movf    HraTime1,W      ;Guarda Hora en w
+02C4   3A00           00962         xorlw   0x00            ;La Hora vale 0?
+02C5   1903           00963         btfsc   STATUS,Z        ;No entonces salta
+02C6   2???           00964         call    MinD4           ;Muestra minutos
+02C7   2???           00965         goto    DisplayJ1       ;Verifica si muestra o no dependiendo de Pausa y J2
+                      00966 ;
+02C8                  00967 HraD4
+02C8   0E13           00968         Swapf   HraTime1,W      ;Guarda horario en w
+02C9   390F           00969         andlw   0x0f            ;Borra las unidades de hora
+02CA   008D           00970         movwf   TempD           ;TempD tiene el valor de las unidades de hora
+02CB   0E0C           00971         swapf   TempC,W         ;Guarda tempC en w
+02CC   048D           00972         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02CD   0008           00973         return
+                      00974 ;
+02CE                  00975 MinD4
+02CE   0E14           00976         Swapf   MinTime1,W      ;Guarda minutero en w
+02CF   390F           00977         andlw   0x0f            ;Borra las unidades de minuto
+02D0   008D           00978         movwf   TempD           ;TempD tiene el valor de las unidades de minuto
+02D1   0E0C           00979         swapf   TempC,W         ;Guarda tempC en w
+02D2   048D           00980         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02D3   0008           00981         return
+                      00982 ;
+02D4                  00983 ShowD5
+02D4   2???           00984         call    MinD5           ;Muestra minutos
+02D5   180E           00985         btfsc   TecStatus,Pausa ;Si Pausa esta en cero salta
+02D6   2???           00986         goto    DisplayJ2
+02D7   0816           00987         movf    HraTime2,W      ;Guarda Hora en w
+02D8   3A00           00988         xorlw   0x00            ;La Hora vale 0?
+02D9   1903           00989         btfsc   STATUS,Z        ;No entonces salta
+02DA   2???           00990         call    SegD5           ;Muestra segundos
+02DB   2???           00991         goto    DisplayJ2       ;Verifica si muestra o no dependiendo de Pausa y J1
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 20
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+                      00992 ;
+02DC                  00993 MinD5
+02DC   0817           00994         movf    MinTime2,W      ;Guarda Minutero en w
+02DD   390F           00995         andlw   0x0f            ;Borra las decenas de minuto
+02DE   008D           00996         movwf   TempD           ;TempD tiene el valor del minutero
+02DF   0E0C           00997         swapf   TempC,W         ;Guarda tempC en w
+02E0   048D           00998         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02E1   0008           00999         return
+02E2                  01000 SegD5
+02E2   0818           01001         movf    SegTime2,W      ;Guarda Segundero en w
+02E3   390F           01002         andlw   0x0f            ;Borra las decenas de minuto
+02E4   008D           01003         movwf   TempD           ;TempD tiene el valor del Segundero
+02E5   0E0C           01004         swapf   TempC,W         ;Guarda tempC en w
+02E6   048D           01005         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02E7   0008           01006         return
+                      01007 ;
+02E8                  01008 ShowD6
+02E8   2???           01009         call    MinD6           ;Muestra minutos
+02E9   180E           01010         btfsc   TecStatus,Pausa ;Si Pausa esta en cero salta
+02EA   2???           01011         goto    DisplayJ2
+02EB   0816           01012         movf    HraTime2,W      ;Guarda Hora en w
+02EC   3A00           01013         xorlw   0x00            ;La Hora vale 0?
+02ED   1903           01014         btfsc   STATUS,Z        ;No entonces salta
+02EE   2???           01015         call    SegD6           ;Muestra segundos
+02EF   2???           01016         goto    DisplayJ2       ;Verifica si muestra o no dependiendo de Pausa y J1
+                      01017 ;
+02F0                  01018 MinD6
+02F0   0E17           01019         Swapf   MinTime2,W      ;Guarda minutero
+02F1   390F           01020         andlw   0x0f            ;Borra las unidades de minuto
+02F2   008D           01021         movwf   TempD           ;TempD tiene el valor del minutero
+02F3   0E0C           01022         swapf   TempC,W         ;Guarda tempC en w
+02F4   048D           01023         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02F5   0008           01024         return
+                      01025 ;
+02F6                  01026 SegD6
+02F6   0E18           01027         Swapf   SegTime2,W      ;Guarda segundero
+02F7   390F           01028         andlw   0x0f            ;Borra las unidades de minuto
+02F8   008D           01029         movwf   TempD           ;TempD tiene el valor del Segundero
+02F9   0E0C           01030         swapf   TempC,W         ;Guarda tempC en w
+02FA   048D           01031         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+02FB   0008           01032         return
+                      01033 ;
+02FC                  01034 ShowD7
+02FC   2???           01035         call    HraD7           ;Muestra horas
+02FD   180E           01036         btfsc   TecStatus,Pausa ;Si Pausa esta en cero salta
+02FE   2???           01037         goto    DisplayJ2
+02FF   0816           01038         movf    HraTime2,W      ;Guarda Hora en w
+0300   3A00           01039         xorlw   0x00            ;La Hora vale 0?
+0301   1903           01040         btfsc   STATUS,Z        ;No entonces salta
+0302   2???           01041         call    MinD7           ;Muestra segundos
+0303   2???           01042         goto    DisplayJ2       ;Verifica si muestra o no dependiendo de Pausa y J1
+                      01043 ;
+0304                  01044 HraD7
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 21
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+0304   0816           01045         movf    HraTime2,W      ;Guarda horario en w
+0305   390F           01046         andlw   0x0f            ;Borra las unidades de hora
+0306   008D           01047         movwf   TempD           ;TempD tiene el valor de las unidades de hora
+0307   0E0C           01048         swapf   TempC,W         ;Guarda tempC en w
+0308   048D           01049         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+0309   0008           01050         return
+                      01051 ;
+030A                  01052 MinD7
+030A   0817           01053         movf    MinTime2,W      ;Guarda minutero en w
+030B   390F           01054         andlw   0x0f            ;Borra las unidades de minuto
+030C   008D           01055         movwf   TempD           ;TempD tiene el valor de las unidades de minuto
+030D   0E0C           01056         swapf   TempC,W         ;Guarda tempC en w
+030E   048D           01057         iorwf   TempD,F         ;Guarda en tempD el valor a sacar por el puerto B
+030F   0008           01058         return
+                      01059 ;
+0310                  01060 DisplayJ1
+0310   080E           01061         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+0311   3905           01062         andlw   0x05            ;Extrae los bits de Pausa y J2
+0312   3A05           01063         xorlw   0x05            ;Setup a J2?
+0313   1903           01064         btfsc   STATUS,Z        ;No entonces salta
+0314   2???           01065         goto    DelDisplay      ;llama rutina de Borrar Display
+0315   2???           01066         goto    Displayout      ;Muestra el digito
+                      01067 ;
+0316                  01068 DisplayJ2
+0316   080E           01069         movf    TecStatus,W     ;Guarda el valor actual de las Teclas en W
+0317   3903           01070         andlw   0x03            ;Extrae los bits de Pausa y J1
+0318   3A03           01071         xorlw   0x03            ;Setup a J1?
+0319   1903           01072         btfsc   STATUS,Z        ;No entonces salta
+031A   2???           01073         goto    DelDisplay      ;llama rutina de Borrar Display
+031B   2???           01074         goto    Displayout      ;Muestra el digito
+                      01075 ;
+031C                  01076 DelDisplay
+031C   080D           01077         movf    TempD,W         ;carga TempD en W
+031D   380F           01078         iorlw   0x0F            ;Coloca F en el Dato
+031E   0086           01079         movwf   PORTB           ;Carga el puerto con el valor a visualizar
+031F   0A8C           01080         incf    TempC,F         ;Incrementa TempC para habilitar siguiente display
+0320   0008           01081         return
+                      01082 ;
+0321                  01083 DelPuntos1
+0321   080D           01084         movf    TempD,W         ;carga TempD en W
+0322   398F           01085         andlw   0x8f            ;Coloca c en el Dato
+0323   0086           01086         movwf   PORTB           ;Carga el puerto con el valor a visualizar
+0324   0A8C           01087         incf    TempC,F         ;Incrementa TempC para habilitar siguiente display
+0325   0008           01088         return
+                      01089 ;       
+0326                  01090 DelPuntos2
+0326   080D           01091         movf    TempD,W         ;carga TempD en W
+0327   399F           01092         andlw   0x9f            ;Coloca 3 en el Dato
+0328   0086           01093         movwf   PORTB           ;Carga el puerto con el valor a visualizar
+0329   0A8C           01094         incf    TempC,F         ;Incrementa TempC para habilitar siguiente display
+032A   0008           01095         return
+                      01096 ;
+032B                  01097 Displayout
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 22
+
+
+LOC  OBJECT CODE     LINE SOURCE TEXT
+  VALUE
+
+032B   080D           01098         movf    TempD,W         ;carga TempD en W
+032C   0086           01099         movwf   PORTB           ;Carga el puerto con el valor a visualizar
+032D   0A8C           01100         incf    TempC,F         ;Incrementa TempC para habilitar siguiente display
+032E   0008           01101         return
+                      01102 ;
+3FF9                  01103         end
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 23
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+ActivaMas                         000000DC
+ActivaMenos                       000000EA
+Bcd                               00000027
+BcdMsd                            00000026
+C                                 00000000
+CeroP                             000000A3
+Count1                            00000010
+Count2                            00000011
+CountP                            00000012
+Countagain                        00000023
+Countagain1                       00000024
+DC                                00000001
+Dec2DTemp                         000001DC
+Dec3DTemp                         000001E8
+Dec4DTemp                         000001F1
+Dec4MTemp                         0000021F
+DecHora                           000001FD
+DecHra1                           00000119
+DecHra2                           00000123
+DecHraTemp                        00000201
+DecMin1                           0000011E
+DecMin2                           00000128
+DecMinTemp                        00000218
+DecTimer1                         000001AD
+DecTimer2                         000001C1
+DelDisplay                        0000031C
+DelPuntos1                        00000321
+DelPuntos2                        00000326
+DelayTec                          00000082
+DisplayJ1                         00000310
+DisplayJ2                         00000316
+Displayout                        0000032B
+DoDecTemp                         000001D5
+DoDecTime1                        000001BB
+DoDecTime2                        000001CF
+DoIncTemp                         00000161
+DoIncTime1                        0000013B
+DoIncTime2                        00000155
+Doitagain                         00000133
+Doitagain1                        0000014D
+Doitagain2                        000001B3
+Doitagain3                        000001C7
+EEADR                             00000009
+EECON1                            00000088
+EECON2                            00000089
+EEDATA                            00000008
+EEIE                              00000006
+EEIF                              00000004
+F                                 00000001
+FJ1                               0000001D
+FJ2                               0000001E
+FMas                              0000001F
+FMenos                            00000020
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 24
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+FPausa                            0000001C
+FSR                               00000004
+FlancoJ1                          000000A9
+FlancoJ2                          000000BA
+FlancoMas                         000000D1
+FlancoMenos                       000000DF
+FlancoP                           0000008F
+GIE                               00000007
+Hora10                            00000193
+Hora19                            00000212
+Hora20                            00000196
+Hora23                            0000020F
+Hora24                            00000199
+Hora9                             00000215
+HraD3                             000002B4
+HraD4                             000002C8
+HraD7                             00000304
+HraD8                             00000278
+HraMin                            00000005
+HraTemp                           00000019
+HraTime1                          00000013
+HraTime2                          00000016
+INDF                              00000000
+INTCON                            0000000B
+INTE                              00000004
+INTEDG                            00000006
+INTF                              00000001
+IRP                               00000007
+Inc3DTemp                         00000171
+Inc4DTemp                         00000179
+Inc4MTemp                         000001A4
+IncHora                           00000182
+IncHra1                           00000109
+IncHra2                           00000111
+IncHraTemp                        00000185
+IncMin1                           0000010D
+IncMin2                           00000115
+IncMinTemp                        0000019C
+IncTimer1                         0000012D
+IncTimer2                         00000147
+Ind2DTemp                         00000168
+InitPorts                         00000008
+InitTimers                        00000010
+J1                                00000001
+J2                                00000002
+LeeTeclas                         00000088
+Mas                               00000003
+Menos                             00000004
+MinD1                             0000028C
+MinD2                             000002A0
+MinD3                             000002BA
+MinD4                             000002CE
+MinD5                             000002DC
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 25
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+MinD6                             000002F0
+MinD7                             0000030A
+MinD8                             0000027E
+MinTemp                           0000001A
+MinTime1                          00000014
+MinTime2                          00000017
+Minuto59                          0000022B
+NOT_PD                            00000003
+NOT_RBPU                          00000007
+NOT_TO                            00000004
+NoSignos                          0000007C
+OPTION_REG                        00000081
+OptionReg                         00000001
+PCL                               00000002
+PCLATH                            0000000A
+PORTA                             00000005
+PORTB                             00000006
+PS0                               00000000
+PS1                               00000001
+PS2                               00000002
+PSA                               00000003
+Pausa                             00000000
+PoneHora                          000000CF
+Poneptos1                         00000141
+Poneptos2                         0000015B
+PulsaJ1                           000000B4
+PulsaJ2                           000000C5
+Puntos1                           00000021
+Puntos2                           00000022
+Quitaptos1                        00000144
+Quitaptos2                        0000015E
+RA0                               00000000
+RA1                               00000001
+RA2                               00000002
+RA3                               00000003
+RA4                               00000004
+RB0                               00000000
+RB1                               00000001
+RB2                               00000002
+RB3                               00000003
+RB4                               00000004
+RB5                               00000005
+RB6                               00000006
+RB7                               00000007
+RBIE                              00000003
+RBIF                              00000000
+RD                                00000000
+RP0                               00000005
+RP1                               00000006
+STATUS                            00000003
+SegD1                             00000292
+SegD2                             000002A6
+SegD5                             000002E2
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 26
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+SegD6                             000002F6
+SegTemp                           0000001B
+SegTime1                          00000015
+SegTime2                          00000018
+SelHraMin                         000000CB
+ServiceInterrupts                 00000030
+ServiceTMR0                       00000035
+ShowD1                            00000284
+ShowD2                            00000298
+ShowD3                            000002AC
+ShowD4                            000002C0
+ShowD5                            000002D4
+ShowD6                            000002E8
+ShowD7                            000002FC
+ShowD8                            00000270
+ShowPuntos1                       0000025A
+ShowPuntos2                       00000265
+T0CS                              00000005
+T0IE                              00000005
+T0IF                              00000002
+T0SE                              00000004
+T1_a_Temp                         000000ED
+T2_a_Temp                         000000FB
+TMR0                              00000001
+TMR0IE                            00000005
+TMR0IF                            00000002
+TRISA                             00000085
+TRISA0                            00000000
+TRISA1                            00000001
+TRISA2                            00000002
+TRISA3                            00000003
+TRISA4                            00000004
+TRISB                             00000086
+TRISB0                            00000000
+TRISB1                            00000001
+TRISB2                            00000002
+TRISB3                            00000003
+TRISB4                            00000004
+TRISB5                            00000005
+TRISB6                            00000006
+TRISB7                            00000007
+TecStatus                         0000000E
+TecTemp                           0000000F
+TempC                             0000000C
+TempD                             0000000D
+Temp_a_T1                         000000F4
+Temp_a_T2                         00000102
+ToggleP                           0000009A
+UpdateDisplay                     0000022E
+W                                 00000000
+WR                                00000001
+WREN                              00000002
+WRERR                             00000003
+MPASM 5.87  /HOME/ASURACE/MPLABXPROJECTS/CHE   5-29-2021  14:47:13         PAGE 27
+
+
+SYMBOL TABLE
+  LABEL                             VALUE 
+
+Z                                 00000002
+_CONFIG                           00002007
+_CP_OFF                           00003FFF
+_CP_ON                            0000000F
+_FOSC_EXTRC                       00003FFF
+_FOSC_HS                          00003FFE
+_FOSC_LP                          00003FFC
+_FOSC_XT                          00003FFD
+_HS_OSC                           00003FFE
+_IDLOC0                           00002000
+_IDLOC1                           00002001
+_IDLOC2                           00002002
+_IDLOC3                           00002003
+_LP_OSC                           00003FFC
+_PWRTE_OFF                        00003FFF
+_PWRTE_ON                         00003FF7
+_RC_OSC                           00003FFF
+_WDTE_OFF                         00003FFB
+_WDTE_ON                          00003FFF
+_WDT_OFF                          00003FFB
+_WDT_ON                           00003FFF
+_XT_OSC                           00003FFD
+__16F84                           00000001
+loop                              00000007
+start                             00000005
+
+Errors   :     0
+Warnings :     0 reported,     0 suppressed
+Messages :     6 reported,     0 suppressed
+
+

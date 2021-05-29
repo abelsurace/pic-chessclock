@@ -1,0 +1,246 @@
+MPLINK 5.09, LINKER
+Linker Map File - Created Sat May 29 20:47:13 2021
+
+                                 Section Info
+                  Section       Type    Address   Location Size(Bytes)
+                ---------  ---------  ---------  ---------  ---------
+                   .org_0       code   0x000000    program   0x000002
+                   .cinit    romdata   0x000001    program   0x000004
+                   .org_1       code   0x000004    program   0x000656
+.config_2007_BUILD/DEFAULT/PRODUCTION/CHESSCL       code   0x002007    program   0x000002
+
+
+
+                              Program Memory Usage 
+                               Start         End      
+                           ---------   ---------      
+                            0x000000    0x000002      
+                            0x000004    0x00032e      
+                            0x002007    0x002007      
+            815 out of 1093 program addresses used, program memory utilization is 74%
+
+
+
+                              Symbols - Sorted by Name
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+                ActivaMas   0x0000dc    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              ActivaMenos   0x0000ea    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    CeroP   0x0000a3    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Dec2DTemp   0x0001dc    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Dec3DTemp   0x0001e8    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Dec4DTemp   0x0001f1    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Dec4MTemp   0x00021f    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecHora   0x0001fd    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecHra1   0x000119    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecHra2   0x000123    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DecHraTemp   0x000201    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecMin1   0x00011e    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecMin2   0x000128    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DecMinTemp   0x000218    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DecTimer1   0x0001ad    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DecTimer2   0x0001c1    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DelDisplay   0x00031c    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DelPuntos1   0x000321    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DelPuntos2   0x000326    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 DelayTec   0x000082    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DisplayJ1   0x000310    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DisplayJ2   0x000316    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Displayout   0x00032b    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DoDecTemp   0x0001d5    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DoDecTime1   0x0001bb    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DoDecTime2   0x0001cf    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DoIncTemp   0x000161    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DoIncTime1   0x00013b    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DoIncTime2   0x000155    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Doitagain   0x000133    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Doitagain1   0x00014d    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Doitagain2   0x0001b3    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Doitagain3   0x0001c7    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 FlancoJ1   0x0000a9    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 FlancoJ2   0x0000ba    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                FlancoMas   0x0000d1    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              FlancoMenos   0x0000df    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  FlancoP   0x00008f    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora10   0x000193    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora19   0x000212    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora20   0x000196    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora23   0x00020f    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora24   0x000199    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    Hora9   0x000215    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    HraD3   0x0002b4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    HraD4   0x0002c8    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    HraD7   0x000304    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    HraD8   0x000278    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Inc3DTemp   0x000171    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Inc4DTemp   0x000179    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Inc4MTemp   0x0001a4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncHora   0x000182    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncHra1   0x000109    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncHra2   0x000111    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               IncHraTemp   0x000185    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncMin1   0x00010d    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncMin2   0x000115    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               IncMinTemp   0x00019c    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                IncTimer1   0x00012d    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                IncTimer2   0x000147    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Ind2DTemp   0x000168    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                InitPorts   0x000008    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               InitTimers   0x000010    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                LeeTeclas   0x000088    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD1   0x00028c    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD2   0x0002a0    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD3   0x0002ba    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD4   0x0002ce    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD5   0x0002dc    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD6   0x0002f0    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD7   0x00030a    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD8   0x00027e    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 Minuto59   0x00022b    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 NoSignos   0x00007c    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 PoneHora   0x0000cf    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Poneptos1   0x000141    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Poneptos2   0x00015b    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  PulsaJ1   0x0000b4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  PulsaJ2   0x0000c5    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Quitaptos1   0x000144    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Quitaptos2   0x00015e    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    SegD1   0x000292    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    SegD2   0x0002a6    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    SegD5   0x0002e2    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    SegD6   0x0002f6    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                SelHraMin   0x0000cb    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+        ServiceInterrupts   0x000030    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              ServiceTMR0   0x000035    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD1   0x000284    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD2   0x000298    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD3   0x0002ac    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD4   0x0002c0    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD5   0x0002d4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD6   0x0002e8    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD7   0x0002fc    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD8   0x000270    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              ShowPuntos1   0x00025a    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              ShowPuntos2   0x000265    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                T1_a_Temp   0x0000ed    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                T2_a_Temp   0x0000fb    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Temp_a_T1   0x0000f4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Temp_a_T2   0x000102    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  ToggleP   0x00009a    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+            UpdateDisplay   0x00022e    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                     loop   0x000007    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    start   0x000005    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+
+
+
+                              Symbols - Sorted by Address
+                     Name    Address   Location    Storage File                     
+                ---------  ---------  ---------  --------- ---------                
+                    start   0x000005    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                     loop   0x000007    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                InitPorts   0x000008    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               InitTimers   0x000010    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+        ServiceInterrupts   0x000030    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              ServiceTMR0   0x000035    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 NoSignos   0x00007c    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 DelayTec   0x000082    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                LeeTeclas   0x000088    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  FlancoP   0x00008f    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  ToggleP   0x00009a    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    CeroP   0x0000a3    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 FlancoJ1   0x0000a9    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  PulsaJ1   0x0000b4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 FlancoJ2   0x0000ba    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  PulsaJ2   0x0000c5    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                SelHraMin   0x0000cb    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 PoneHora   0x0000cf    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                FlancoMas   0x0000d1    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                ActivaMas   0x0000dc    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              FlancoMenos   0x0000df    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              ActivaMenos   0x0000ea    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                T1_a_Temp   0x0000ed    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Temp_a_T1   0x0000f4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                T2_a_Temp   0x0000fb    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Temp_a_T2   0x000102    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncHra1   0x000109    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncMin1   0x00010d    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncHra2   0x000111    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncMin2   0x000115    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecHra1   0x000119    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecMin1   0x00011e    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecHra2   0x000123    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecMin2   0x000128    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                IncTimer1   0x00012d    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Doitagain   0x000133    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DoIncTime1   0x00013b    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Poneptos1   0x000141    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Quitaptos1   0x000144    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                IncTimer2   0x000147    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Doitagain1   0x00014d    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DoIncTime2   0x000155    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Poneptos2   0x00015b    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Quitaptos2   0x00015e    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DoIncTemp   0x000161    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Ind2DTemp   0x000168    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Inc3DTemp   0x000171    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Inc4DTemp   0x000179    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  IncHora   0x000182    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               IncHraTemp   0x000185    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora10   0x000193    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora20   0x000196    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora24   0x000199    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               IncMinTemp   0x00019c    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Inc4MTemp   0x0001a4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DecTimer1   0x0001ad    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Doitagain2   0x0001b3    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DoDecTime1   0x0001bb    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DecTimer2   0x0001c1    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Doitagain3   0x0001c7    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DoDecTime2   0x0001cf    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DoDecTemp   0x0001d5    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Dec2DTemp   0x0001dc    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Dec3DTemp   0x0001e8    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Dec4DTemp   0x0001f1    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                  DecHora   0x0001fd    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DecHraTemp   0x000201    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora23   0x00020f    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   Hora19   0x000212    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    Hora9   0x000215    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DecMinTemp   0x000218    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                Dec4MTemp   0x00021f    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                 Minuto59   0x00022b    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+            UpdateDisplay   0x00022e    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              ShowPuntos1   0x00025a    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+              ShowPuntos2   0x000265    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD8   0x000270    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    HraD8   0x000278    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD8   0x00027e    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD1   0x000284    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD1   0x00028c    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    SegD1   0x000292    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD2   0x000298    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD2   0x0002a0    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    SegD2   0x0002a6    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD3   0x0002ac    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    HraD3   0x0002b4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD3   0x0002ba    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD4   0x0002c0    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    HraD4   0x0002c8    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD4   0x0002ce    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD5   0x0002d4    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD5   0x0002dc    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    SegD5   0x0002e2    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD6   0x0002e8    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD6   0x0002f0    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    SegD6   0x0002f6    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                   ShowD7   0x0002fc    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    HraD7   0x000304    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                    MinD7   0x00030a    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DisplayJ1   0x000310    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+                DisplayJ2   0x000316    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DelDisplay   0x00031c    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DelPuntos1   0x000321    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               DelPuntos2   0x000326    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+               Displayout   0x00032b    program     static /home/asurace/MPLABXProjects/chessclock.X/chessclock.asm
+
+
